@@ -243,7 +243,7 @@ Same thing applies to the "-auto*" switches that will perform the same actions t
 
 # Setup Diagram <br>
 
-![](https://i.imgur.com/qM1Je9w.png)
+![](https://i.imgur.com/uIDk80u.png)
 
 # Network Implementation Example <br>
 <br>
