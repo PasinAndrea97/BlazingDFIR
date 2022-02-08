@@ -239,7 +239,7 @@ You will end up with a zipped file like the following one<br>
 
 <br>
 
-Same thing applies to the "-auto*" switches that will perform the same actions that "-target" & "-collect" does but using as targets the endpoints listed in ".\EndpointList.txt" file if present.
+Same thing applies to the "-auto*" switches that will perform the same actions that "-target" & "-collect" do but using as targets the endpoints listed in ".\EndpointList.txt" file if present.
 
 # Setup Diagram <br>
 
