@@ -9,7 +9,7 @@ An all in one powershell Tool to perform powerful remote Data Forensics Incident
 
 # Components Decription <br>
 1) .\tools\ --> this directory contains all the tools that will be uploaded to the remote machines involved in DFIR operations <br>
-2) BlazingDFIR.ps1 --> Main Tool that enables you to execute accurate remote operations in an automated and secure manner using all the switches available <br>
+2) BlazingDFIR.ps1 --> Main Tool that enables you to execute accurate remote operations in an automated and secure manner using many available switches<br>
 
 # How it works? <br>
 The tool is meant to be simple and "Ready to Use". <br>
