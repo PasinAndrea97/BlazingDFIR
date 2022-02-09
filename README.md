@@ -11,7 +11,7 @@ An all in one powershell Tool to perform powerful remote Data Forensics Incident
 1) .\tools\ --> this directory contains all the tools that will be uploaded to the remote machines involved in DFIR operations <br>
 2) BlazingDFIR.ps1 --> Main Tool that enables you to execute accurate remote operations in an automated and secure manner using many available switches<br>
 
-# Tool Goals <br>
+# Achieved Goals <br>
 NF_Security achieved an amazing final result with BlazingDFIR: now a signle tool that speeds up all IR operations finally exists.
 BlazingDFIR can gather as much data as possible with the Order of Volatility as principal rule that sets his execution and quality standards.
 
