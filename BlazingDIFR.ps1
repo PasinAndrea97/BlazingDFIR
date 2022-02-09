@@ -132,23 +132,62 @@ function DIFRHost {
 			}while($_sleepTime -gt 0)
 			
 			
-			#ENUMERATION SECTION			
+			#ENUMERATION SECTION	
+			Write-Host "Enumeration Sections has started...";
+			### Shares infos ###			
 			wmic share list brief > C:\DFIR\SharesList.txt;
+			Write-Host "Shares infos gathered!";
+			### Process infos ###
 			wmic process list >  C:\DFIR\ProcessList.txt;
+			Get-Process > C:\DFIR\Get_Process.txt
+			Write-Host "Process infos gathered!";
+			### Domain infos ###
 			wmic ntdomain list >  C:\DFIR\NtdomainList.txt;
 			wmic useraccount list >  C:\DFIR\UseraccountList.txt;
 			wmic group list >  C:\DFIR\DomaingroupsList.txt;
+			Write-Host "Domain infos gathered!";
+			### System account list ###
 			wmic sysaccount list >  C:\DFIR\SysaccountList.txt;
+			wmic USERACCOUNT get "Domain,Name,Sid" > C:\DFIR\LocalUsersAccounts.txt;
+			Write-Host "System account list gathered!";
+			### CPU Cache infos ###
+			wmic memcache list brief > C:\DFIR\CPUcache.txt;
+			Get-WmiObject win32_processor >> C:\DFIR\CPUcache.txt;	
+			Write-Host "CPU Cache infos gathered!";
+			### Network Data ###
+			Get-NetRoute | Format-List -Property * > C:\DFIR\NetRoute.txt;	
+			Get-NetNeighbor | Format-List -Property * > C:\DFIR\ARPcache.txt;	
+			Write-Host "Network Data gathered!";
+			### OS Specifics ###
+			wmic os LIST Full > C:\DFIR\OSinfo.txt;
+			wmic computersystem LIST full >> C:\DFIR\OSinfo.txt;
+			Write-Host "OS Specifics gathered!";
+			### Peripherals ###
+			wmic path Win32_PnPdevice > C:\DFIR\OSinfo.txt;
+			Write-Host "Peripherals gathered!";
+			### Windows Event Logs ###
+			Copy-Item -Path "C:\Windows\System32\winevt\Logs" -Destination "C:\DFIR\WinevtLogs" -Recurse
+			Write-Host "Windows Event Logs gathered!";
+			### Temporary Files ###
+			Copy-Item -Path $env:TEMP -Destination "C:\DFIR\userTMP" -Recurse
+			Copy-Item -Path "C:\Windows\temp" -Destination "C:\DFIR\winTMP" -Recurse
+			Write-Host "Temporary Files gathered!";
+			### Directory Listing and File Search ###	
+			Write-Host "Searching for password files...";			
+			wmic DATAFILE where "drive='C:' AND Name like '%password%'" GET Name,readable,size /VALUE > C:\DFIR\PasswordFiles.txt;	
+			Write-Host "Done!";					
+			### AV products listing ###
 			try
 			{
 				wmic /namespace:\\root\securitycenter2 path antivirusproduct get * /value > C:\DFIR\AVproductsSecCenter.txt;
+				Write-Host "Av data gathered!";
 			}
 			catch
 			{
 				Write-Host "The target does not have SecurityCenter2 --> Probably it is a server, no antivirus data available!"
-			}
-			wmic USERACCOUNT get "Domain,Name,Sid" > C:\DFIR\LocalUsersAccounts.txt;
+			}	
 			
+			#COMPRESSION SECTION	
 			Write-Host "Starting to compress payload... Hold on...";
 			$completed = $false;			
 			DO
@@ -159,7 +198,7 @@ function DIFRHost {
 					Add-Type -AssemblyName System.IO.Compression.FileSystem; #NET FRAMEWORK Reference	
 					[IO.Compression.ZipFile]::CreateFromDirectory("C:\DFIR",$_dataToExtract, [IO.Compression.CompressionLevel]::Optimal, $true, [Text.Encoding]::Default);
 					$completed = $true;
-					Write-Host "Payload Compessed, you can use -collect switch to retrieve data from " $env:computername;
+					Write-Host "Payload Compessed, you can use -collect switch to retrieve data from " $env:computername " PATH --> " $_dataToExtract;
 				}
 				catch
 				{
@@ -255,15 +294,46 @@ function CollectData {
 			$_dataToExtract = -join("C:\", $_remoteEdp, ".zip");
 			$_localEdpPath = -join($_localPath, $_remoteEdp, ".zip"); #Path Variable
 			$_localPathsExists = Test-Path  $_localEdpPath;
+			$_remoteZipExists = Test-Path  $_dataToExtract;
 			#Remote PSSession Establishment
 			# wmic /node:$servername process call create "winrm quickconfig" -Credential $_secureCreds
 			# wmic /node:$servername share list brief -Credential $_secureCreds
 			$RemoteSession = New-PSSession -Computername $_remoteEdp -Credential $_secureCreds;
 			#$_dfirSharePath = -join("\\", $_serverIp, "\IR_Data\"); #PATH per RemoteDir		
 			
-			#Result Retrieve		
-			Copy-Item -FromSession $RemoteSession -Path $_dataToExtract -Destination $_localEdpPath;
-			Write-Host "DFIR data has been saved successfully! You can find it in " $_localEdpPath;
+			if($_remoteZipExists -eq $true)
+			{
+				#Result Retrieve		
+				Copy-Item -FromSession $RemoteSession -Path $_dataToExtract -Destination $_localEdpPath;
+				Write-Host "DFIR data has been saved successfully! You can find it in " $_localEdpPath;
+			}
+			else
+			{
+				#COMPRESSION SECTION	
+				Write-Host "Starting to compress payload... Hold on...";
+				$completed = $false;			
+				DO
+				{
+					try{
+						#Compress-Archive -Path C:\Enumeration.txt -Update -DestinationPath $_dataToExtract;	
+						#Creates NetFramework 4.5 method to compress files larger than 2 GB
+						Add-Type -AssemblyName System.IO.Compression.FileSystem; #NET FRAMEWORK Reference	
+						[IO.Compression.ZipFile]::CreateFromDirectory("C:\DFIR",$_dataToExtract, [IO.Compression.CompressionLevel]::Optimal, $true, [Text.Encoding]::Default);
+						$completed = $true;
+						Write-Host "Payload Compessed, you can use -collect switch to retrieve data from " $env:computername " PATH --> " $_dataToExtract;
+					}
+					catch
+					{
+						$completed = $false;
+						Write-Host "Payload Compession failed, I'll retry in 5 seconds";
+						Write-Host $_;
+						Start-Sleep -s 5;
+					}
+				}while($completed -eq $false)
+				#Result Retrieve		
+				Copy-Item -FromSession $RemoteSession -Path $_dataToExtract -Destination $_localEdpPath;
+				Write-Host "DFIR data has been saved successfully! You can find it in " $_localEdpPath;
+			}
 			#Deletes Remote Directories & Files
 			Invoke-Command -Session $RemoteSession -ArgumentList $_dataToExtract -Scriptblock {
 			param($_dataToExtract);
