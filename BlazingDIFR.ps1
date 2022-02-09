@@ -20,7 +20,7 @@
 #################################################################################
 #ARGS
 param(		
-		[string]$remoteTool, #Copy the ".\tool" directory to the remote machine and execute the file you specify
+		[string]$remotetool, #Copy the ".\tool" directory to the remote machine and execute the file you specify
 		[switch]$list, #Expects ./EndpointList.txt List to retrieve targets for DFIR operations		
 		[switch]$target, #Target one Endpoint for DFIR operations
 		[switch]$cshare, #using "-cshare" creates the share that will be used during DFIR
@@ -33,87 +33,10 @@ param(
 ###### DFIR FUNCTIONS ######
 # This section contains the functions used inside main routines
 
-function Compute-FileHash {
-Param(
-    [Parameter(Mandatory = $true, Position=1)]
-    [string]$FilePath,
-    [ValidateSet("MD5","SHA1","SHA256","SHA384","SHA512","RIPEMD160")]
-    [string]$HashType = "MD5"
-)
-    
-    switch ( $HashType.ToUpper() )
-    {
-        "MD5"       { $hash = [System.Security.Cryptography.MD5]::Create() }
-        "SHA1"      { $hash = [System.Security.Cryptography.SHA1]::Create() }
-        "SHA256"    { $hash = [System.Security.Cryptography.SHA256]::Create() }
-        "SHA384"    { $hash = [System.Security.Cryptography.SHA384]::Create() }
-        "SHA512"    { $hash = [System.Security.Cryptography.SHA512]::Create() }
-        "RIPEMD160" { $hash = [System.Security.Cryptography.RIPEMD160]::Create() }
-        default     { "Invalid hash type selected." }
-    }
-
-    if (Test-Path $FilePath) {
-        $File = Get-ChildItem -Force $FilePath
-        $fileData = [System.IO.File]::ReadAllBytes($File.FullName)
-        $HashBytes = $hash.ComputeHash($fileData)
-        $PaddedHex = ""
-
-        foreach($Byte in $HashBytes) {
-            $ByteInHex = [String]::Format("{0:X}", $Byte)
-            $PaddedHex += $ByteInHex.PadLeft(2,"0")
-        }
-        $PaddedHex
-        $File.LastWriteTimeUtc
-        $File.Length
-        
-    } else {
-        "${FilePath} is locked or could not be found."
-        "${FilePath} is locked or could not be not found."
-        Write-Error -Category InvalidArgument -Message ("{0} is locked or could not be found." -f $FilePath)
-    }
-}
-
-function GetShannonEntropy {
-Param(
-    [Parameter(Mandatory=$True,Position=0)]
-        [string]$FilePath
-)
-    $fileEntropy = 0.0
-    $FrequencyTable = @{}
-    $ByteArrayLength = 0
-            
-    if(Test-Path $FilePath) {
-        $file = (ls $FilePath)
-        Try {
-            $fileBytes = [System.IO.File]::ReadAllBytes($file.FullName)
-        } Catch {
-            Write-Error -Message ("Caught {0}." -f $_)
-        }
-
-        foreach($fileByte in $fileBytes) {
-            $FrequencyTable[$fileByte]++
-            $ByteArrayLength++
-        }
-
-        $byteMax = 255
-        for($byte = 0; $byte -le $byteMax; $byte++) {
-            $byteProb = ([double]$FrequencyTable[[byte]$byte])/$ByteArrayLength
-            if ($byteProb -gt 0) {
-                $fileEntropy += -$byteProb * [Math]::Log($byteProb, 2.0)
-            }
-        }
-        $fileEntropy
-        
-    } else {
-        "${FilePath} is locked or could not be found. Could not calculate entropy."
-        Write-Error -Category InvalidArgument -Message ("{0} is locked or could not be found." -f $FilePath)
-    }
-}
-
 function DeploynExec {
-			param(				
-				$_endpointName,
-				$_toolFullNameWithExt
+			param(
+				#Filename with extension "tool.exe" / "tool.bat"
+				[string]$_toolFullNameWithExt
 			)
 			$_toolFullPath = -join(".\tools\", $_toolFullNameWithExt);
 			$_toolExists = Test-Path $_toolFullPath;
@@ -126,9 +49,22 @@ function DeploynExec {
 				#Deletes Remote Directories & Files
 				Invoke-Command -Session $RemoteSession -ArgumentList $_toolFullNameWithExt -Scriptblock {
 				param($_toolFullNameWithExt);
+				$_DFIRPathExists = Test-Path  "C:\DFIR";
+				if($_DFIRPathExists -eq $false)
+				{
+					New-Item -ItemType Directory -Force -Path "C:\DFIR";
+				}
 				$_toolPath = -join("C:\tools\", $_toolFullNameWithExt);
-				#ToolExec with args if needed		
-				Start-Process -NoNewWindow -FilePath $_toolPath -ArgumentList ("");			
+					#ToolExec		
+					if($_toolPath -Match ".exe")
+					{
+						Start-Process -NoNewWindow -FilePath $_toolPath;
+					}
+					elseif
+					($_toolPath -Match ".bat")
+					{
+						cmd.exe /c $_toolPath
+					}
 				};
 			
 				#Disconnect & Rmeove Sessions
@@ -223,7 +159,7 @@ function DIFRHost {
 					Add-Type -AssemblyName System.IO.Compression.FileSystem; #NET FRAMEWORK Reference	
 					[IO.Compression.ZipFile]::CreateFromDirectory("C:\DFIR",$_dataToExtract, [IO.Compression.CompressionLevel]::Optimal, $true, [Text.Encoding]::Default);
 					$completed = $true;
-					Write-Host "Payload Compessed, you can use -collect swtich to retrieve data from " $env:computername;
+					Write-Host "Payload Compessed, you can use -collect switch to retrieve data from " $env:computername;
 				}
 				catch
 				{
@@ -353,7 +289,7 @@ if (($collect -eq $false) -and
 	($collect -eq $false) -and
 	($autotarget -eq $false) -and
 	($autolist -eq $false) -and
-	($remoteTool.Length -lt 3)
+	($remotetool.Length -lt 3)
 	)
 {
 	$Modules = @"
@@ -380,7 +316,7 @@ if (($collect -eq $false) -and
 #################################################################################
 
 
--RemoteExecuteTool | - Copy the .\tool directory to the remote machine and execute the file you specify [EXE or BAT]
+-remotetool "remotetool.exe/bat" | - Copy the .\tool directory to the remote machine and execute the file you specify [EXE or BAT]
 -getedp | - Gets Endpoint list (it will ask for Domain Controller Name) and generates .\EndpointList.txt
 -collect | - Collects the DFIR directory in a specified remote host
 -list | - Needed to specify the Endpoint list file
@@ -430,9 +366,11 @@ if($cshare -eq $true)
 		Write-Host "Local Share " $_localPath  " already exists!";
 	}
 }
-if(($remoteTool -Match ".exe") -Or ($remoteTool -Match ".bat"))
+if(($remotetool -Match ".exe") -Or ($remotetool -Match ".bat"))
 {
-	DeploynExec $remoteTool;
+	#Asks for Host name
+	$_remoteEdp = Read-Host -Prompt 'Input your taget Endpoint name';
+	DeploynExec($remotetool);
 }
 if($autotarget -eq $true)
 {
