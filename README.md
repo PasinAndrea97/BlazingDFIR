@@ -248,7 +248,8 @@ Same thing applies to the "-auto*" switches that will perform the same actions t
 # Network Implementation Example <br>
 <br>
 
-<b>In the next picture you can see how easy can be to reach all WINRM activated hosts by using this tool in any device on the same corporate network<b/>
+<b>In the next picture you can see how easy can be to reach all WINRM activated hosts by using this tool in any device on the same corporate network.<b/>
+   No matter how complex the company can be, you can ZAP every host your landing machine can reach! <b/>
 
 <br>
 
