@@ -6,22 +6,22 @@
 # Copyright NF_Security
 #
 #	Collects DIFR data from a specified host that the script will ask for
-# ex: .\BlazingDIFR.ps1 -nolist -collect
+# ex: .\BlazingDIFR.ps1 -collect
 #
 #	Start DIFR process in a specified host that the script will ask for
-# ex: .\BlazingDIFR.ps1 -nolist
+# ex: .\BlazingDIFR.ps1 -target
 #
-#	Start DIFR process in a specified host list
-# ex: .\BlazingDIFR.ps1 -list Endpointlist.txt
+#	Start DIFR process in a specified host list (Expects ./EndpointList.txt List)
+# ex: .\BlazingDIFR.ps1 -list
 #
 #	Collects DIFR data from a specified host list
-# ex: .\BlazingDIFR.ps1 -list Endpointlist.txt -collect
+# ex: .\BlazingDIFR.ps1 -list -collect
 #
 #################################################################################
 #ARGS
 param(		
 		[string]$remotetool, #Copy the ".\tool" directory to the remote machine and execute the file you specify
-		[switch]$list, #Expects ./EndpointList.txt List to retrieve targets for DFIR operations		
+		[switch]$list, #(Expects ./EndpointList.txt List) Start DFIR operations in every endpoint		
 		[switch]$target, #Target one Endpoint for DFIR operations
 		[switch]$cshare, #using "-cshare" creates the share that will be used during DFIR
 		[switch]$getedp, #using "-getedp" set the script in "Get Endpoints" mode
