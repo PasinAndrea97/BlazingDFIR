@@ -56,7 +56,7 @@ Output <br>
 #################################################################################
 
 
--RemoteExecuteTool | - Copy the .\tool directory to the remote machine and execute the file you specify [EXE or BAT]
+-remotetool "remotetool.exe/bat" | - Copies the .\tool directory to the remote machine and it executes the file you specified [EXE or BAT]
 -getedp | - Gets Endpoint list (it will ask for Domain Controller Name) and generates .\EndpointList.txt
 -collect | - Collects the DFIR directory in a specified remote host
 -list | - Needed to specify the Endpoint list file
