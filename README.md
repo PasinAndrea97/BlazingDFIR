@@ -12,15 +12,17 @@ An all in one powershell Tool to perform powerful remote Data Forensics Incident
 2) BlazingDFIR.ps1 --> Main Tool that enables you to execute accurate remote operations in an automated and secure manner using many available switches<br>
 
 # Tool Goals <br>
-NF_Security is willing to achieve with BlazingDFIR an amazing final result: code one of the best "all in one" tools that can gather as much data as possible with the Order of Volatility as principal rule that sets his execution and quality standards.
+NF_Security achieved an amazing final result with BlazingDFIR: now a signle tool that speeds up all IR operations finally exists.
+BlazingDFIR can gather as much data as possible with the Order of Volatility as principal rule that sets his execution and quality standards.
 
-Data gathering will follow this principle:
+Gathered data follows this principle:
 
-- Processor and processes: CPU, cache and register content, process state tables
-- Network: routing tables, ARP caches, process tables, kernel statistics
-- Main Memory --> Already Achieved
-- Semi Volatile Data: temporary files system / swap spaces
-- Resident Data: filesystem and slack space
+- Processor and processes: CPU, cache and register content, process state tables --> Already Achieved by BlazingDFIR
+- Network: routing tables, ARP caches, process tables, kernel statistics --> Already Achieved by BlazingDFIR
+- Main Memory --> Already Achieved by BlazingDFIR
+- Semi Volatile Data: temporary files system / swap spaces --> Already Achieved by BlazingDFIR
+- Resident Data: filesystem and slack space --> Achieved by <a href="https://github.com/Invoke-IR/PowerForensics">PowerForensics</a>
+- Any Relevant Data --> There's always room for improvement, help us make BlazingDFIR better!
 
 # How it works? <br>
 The tool is meant to be simple and "Ready to Use". <br>
