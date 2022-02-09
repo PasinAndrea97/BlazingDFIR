@@ -248,7 +248,7 @@ You will end up with a zipped file like the following one<br>
 
 <br>
 
-![](https://i.imgur.com/A30U7SV.png)
+![](https://i.imgur.com/Jb2qa30.png)
 
 <br>
 
