@@ -77,6 +77,7 @@ Output <br>
 -target | - Target one Endpoint for DFIR operations
 -autotarget | - Expects ./EndpointList.txt Target one Endpoint for automatic DFIR & Collect operations
 -autolist | - Expects ./EndpointList.txt List to retrieve targets for automatic DFIR & Collect operations
+-local | - Target local Endpoint for DFIR operations
 ```
 <br>
 
