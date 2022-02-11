@@ -291,7 +291,7 @@ function CollectData {
 			)
 	$_remoteEdp = $_endpointName;
 			#Collection ZIP File
-			
+			Write-Host "ATTENTION: This process can take several minutes based on remote file size... Be patient please :) ";
 			$_dataToExtract = -join("C:\", $_remoteEdp, ".zip");
 			$_localEdpPath = -join($_localPath, $_remoteEdp, ".zip"); #Path Variable
 			$_localPathsExists = Test-Path  $_localEdpPath;
@@ -341,10 +341,16 @@ function CollectData {
 			#Deletes Remote Directories & Files
 			Invoke-Command -Session $RemoteSession -ArgumentList $_dataToExtract -Scriptblock {
 			param($_dataToExtract);
-			Remove-Item -Recurse -Confirm:$false -Force  "C:\tools\"; #Delete ToolsDir
-			Remove-Item -Confirm:$false -Force $_dataToExtract; #Delete Zipped Data
-			Remove-Item -Recurse -Confirm:$false -Force "C:\DFIR\"; #Delete Directory
-			Write-Host "All remote DFIR tools and DIRS were removed successfully!"
+				try{
+					Remove-Item -Recurse -Confirm:$false -Force  "C:\tools\"; #Delete ToolsDir
+					Remove-Item -Confirm:$false -Force $_dataToExtract; #Delete Zipped Data
+					Remove-Item -Recurse -Confirm:$false -Force "C:\DFIR\"; #Delete Directory
+					Write-Host "All remote DFIR tools and DIRS were removed successfully!"
+				}catch
+				{
+					Write-Host "Data deletion unsuccessful! Try using -target swtich to start DFIR operations!"
+				}
+			
 			};
 		
 			#Disconnect & Rmeove Sessions
@@ -391,15 +397,16 @@ if (($collect -eq $false) -and
 #################################################################################
 
 
--remotetool "remotetool.exe/bat" | - Copy the .\tool directory to the remote machine and execute the file you specify [EXE or BAT]
--getedp | - Gets Endpoint list (it will ask for Domain Controller Name) and generates .\EndpointList.txt
--collect | - Collects the DFIR directory in a specified remote host
--list | - Needed to specify the Endpoint list file
 -cshare | - Creates the share C:\IR_DATA that will be used during DFIR operations
+-local | - Target local Endpoint for DFIR operations
+-getedp | - Gets Endpoint list (it will ask for Domain Controller Name) and generates .\EndpointList.txt
 -target | - Target one Endpoint for DFIR operations
+-collect | - Collects the DFIR directory in a specified remote host
+-list | - It targets for DFIR operations all endpoints inside the ./EndpointList.txt (Use -list -collect to retrieve data) 
+-remotetool "remotetool.exe/bat" | - Copy the .\tool directory to the remote machine and execute the file you specify [EXE or BAT]
 -autotarget | - Expects ./EndpointList.txt Target one Endpoint for automatic DFIR & Collect operations
 -autolist | - Expects ./EndpointList.txt List to retrieve targets for automatic DFIR & Collect operations
--local | - Target local Endpoint for DFIR operations
+
 
 "@;
 
@@ -422,7 +429,7 @@ $_secureCreds = New-Object System.Management.Automation.PSCredential($_username,
 
 if($local -eq $true)
 {	
-			
+			Write-Host "In the process you will see some errors (usually in red) don't worry it depends on the remote system type and configurations.";
 			#Collection ZIP File
 			$_remoteEdp = $env:computername;
 			$_dataToExtract = -join("C:\", $_remoteEdp, ".zip");
@@ -443,11 +450,11 @@ if($local -eq $true)
 			}	
 			
 			#MEMORY ACQUISITION			
-			Start-Process -NoNewWindow -FilePath "C:\tools\winpmem_mini_x64_rc2.exe" -ArgumentList ("C:\DFIR\" + $env:computername + ".raw");
+			Start-Process -NoNewWindow -FilePath ".\tools\winpmem_mini_x64_rc2.exe" -ArgumentList ("C:\DFIR\" + $env:computername + ".raw");
 			
 			#AUTORUNS SECTION
 			Write-Host "Starting comprehensive autoruns collection for all users...";	
-			Start-Process -NoNewWindow -FilePath "C:\tools\autoruns_collector.bat";		
+			Start-Process -NoNewWindow -FilePath ".\tools\autoruns_collector.bat";
 			Write-Host "Success!";	
 			#Wait time SECTION
 			Write-Host "I'm waiting to let memory acquisition process end successfully...";		
@@ -487,9 +494,16 @@ if($local -eq $true)
 			Get-NetNeighbor | Format-List -Property * > C:\DFIR\ARPcache.txt;	
 			Write-Host "Network Data gathered!";
 			### OS Specifics ###
-			wmic os LIST Full > C:\DFIR\OSinfo.txt;
-			wmic computersystem LIST full >> C:\DFIR\OSinfo.txt;
-			Write-Host "OS Specifics gathered!";
+			try
+			{
+				wmic os LIST Full > C:\DFIR\OSinfo.txt;
+				wmic computersystem LIST full >> C:\DFIR\OSinfo.txt;
+				Write-Host "OS Specifics gathered!";
+			}
+			catch{
+				Write-Host "Error! OS Specifics not gathered correctly...";
+			}
+			
 			### Peripherals ###
 			wmic path Win32_PnPdevice > C:\DFIR\OSinfo.txt;
 			Write-Host "Peripherals gathered!";
@@ -501,7 +515,7 @@ if($local -eq $true)
 			Copy-Item -Path "C:\Windows\temp" -Destination "C:\DFIR\winTMP" -Recurse
 			Write-Host "Temporary Files gathered!";
 			### Directory Listing and File Search ###	
-			Write-Host "Searching for password files...";			
+			Write-Host "Searching for password files... [It can take several minutes... Hold on and trust the developers :) ]";			
 			wmic DATAFILE where "drive='C:' AND Name like '%password%'" GET Name,readable,size /VALUE > C:\DFIR\PasswordFiles.txt;	
 			Write-Host "Done!";					
 			### AV products listing ###
@@ -516,7 +530,8 @@ if($local -eq $true)
 			}	
 			
 			#COMPRESSION SECTION	
-			Write-Host "Starting to compress payload... Hold on...";
+			Write-Host "Starting to compress payload... Hold on... (It can take several minutes, but it is worth!)";
+			Write-Host "REMINDER: The process will take more time if the destination host has an high amount of RAM";
 			$completed = $false;			
 			DO
 			{
@@ -611,6 +626,26 @@ if($target -eq $true)
 {
 	#Asks for Host name
 	$_remoteEdp = Read-Host -Prompt 'Input your taget Endpoint name';
+	#Test Directories
+	$_pathsExists = Test-Path  $_localPath;
+
+	#Create Directories if $_pathsExists returns $false
+	if($_pathsExists -eq $false)
+	{
+		New-Item -ItemType Directory -Force -Path $_localPath;	
+		#Share Base Directory and set IR USER full control
+		$UserId = "Everyone"; #$_domain +"\" + $_username
+		New-SmbShare -Path $_localPath -Name IR_Data -FullAccess $UserId;
+		$Acl = Get-Acl $_localPath;
+		$NewAccessRule = New-Object system.security.accesscontrol.filesystemaccessrule("Everyone","FullControl","Allow");
+		$Acl.SetAccessRule($NewAccessRule);
+		Set-Acl $_localPath $Acl;
+		Write-Host "Local Share " $_localPath  " has been created and shared correctly!";
+	}
+	else
+	{
+		Write-Host "Local Share " $_localPath  " already exists!";
+	}
 	DIFRHost $_remoteEdp;
 }
 if(($collect -eq $true) -and ($list -eq $false))
