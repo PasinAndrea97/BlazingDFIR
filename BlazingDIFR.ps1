@@ -34,6 +34,30 @@ param(
 ###### DFIR FUNCTIONS ######
 # This section contains the functions used inside main routines
 
+function BaseShareCreate {
+	
+	#Test Directories
+	$_pathsExists = Test-Path  $_localPath;
+
+	#Create Directories if $_pathsExists returns $false
+	if($_pathsExists -eq $false)
+	{
+		New-Item -ItemType Directory -Force -Path $_localPath;	
+		#Share Base Directory and set IR USER full control
+		$UserId = "Everyone"; #$_domain +"\" + $_username
+		New-SmbShare -Path $_localPath -Name IR_Data -FullAccess $UserId;
+		$Acl = Get-Acl $_localPath;
+		$NewAccessRule = New-Object system.security.accesscontrol.filesystemaccessrule("Everyone","FullControl","Allow");
+		$Acl.SetAccessRule($NewAccessRule);
+		Set-Acl $_localPath $Acl;
+		Write-Host "Local Share " $_localPath  " has been created and shared correctly!";
+	}
+	else
+	{
+		Write-Host "Local Share " $_localPath  " already exists!";
+	}
+}
+
 function DeploynExec {
 			param(
 				#Filename with extension "tool.exe" / "tool.bat"
@@ -98,7 +122,7 @@ function DIFRHost {
 			$RemoteSession = New-PSSession -Computername $_remoteEdp -Credential $_secureCreds;
 			#$_dfirSharePath = -join("\\", $_serverIp, "\IR_Data\"); #PATH per RemoteDir	
 			$_localPathsExists = Test-Path  $_localEdpPath;
-			
+			BaseShareCreate;
 			#Tools Copying
 			Copy-Item -ToSession $RemoteSession -Recurse -Path ".\tools" -Destination "C:\";
 						
@@ -295,12 +319,13 @@ function CollectData {
 			$_dataToExtract = -join("C:\", $_remoteEdp, ".zip");
 			$_localEdpPath = -join($_localPath, $_remoteEdp, ".zip"); #Path Variable
 			$_localPathsExists = Test-Path  $_localEdpPath;
-			
+			BaseShareCreate;	
 			#Remote PSSession Establishment
 			# wmic /node:$servername process call create "winrm quickconfig" -Credential $_secureCreds
 			# wmic /node:$servername share list brief -Credential $_secureCreds
 			$RemoteSession = New-PSSession -Computername $_remoteEdp -Credential $_secureCreds;
-			#$_dfirSharePath = -join("\\", $_serverIp, "\IR_Data\"); #PATH per RemoteDir		
+			#$_dfirSharePath = -join("\\", $_serverIp, "\IR_Data\"); #PATH per RemoteDir	
+					
 			$_remoteZipExists = Invoke-Command -Session $RemoteSession -ArgumentList $_dataToExtract -Scriptblock {
 			param($_dataToExtract);
 			 Return Test-Path  $_dataToExtract;
